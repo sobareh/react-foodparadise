@@ -41,7 +41,7 @@ const City = (props) => {
           data: city,
         };
         let criteria2 = [...criteria];
-        criteria.push(newCriteria);
+        criteria2.push(newCriteria);
         setCity(city);
         setCriteria(criteria2);
       })
@@ -80,8 +80,9 @@ const City = (props) => {
       criteriaName: "Category",
       data: category,
     };
-    criteria.push(newCriteria);
-    setCategorySelected(category, criteria2);
+    criteria2.push(newCriteria);
+    setCriteria(criteria2);
+    setCategorySelected(category);
   };
 
   const changeKeywordHandler = (event) => {
@@ -107,7 +108,6 @@ const City = (props) => {
     let criteria2 = [...criteria];
     criteria2.splice(index, 1);
     setCriteria(criteria2);
-    console.log(criteria2);
   };
 
   const searchHandler = () => {
@@ -140,6 +140,7 @@ const City = (props) => {
         params,
       })
       .then(({ data }) => {
+        console.log(data);
         setRestaurants(data.restaurants);
       })
       .catch((err) => console.log(err));
