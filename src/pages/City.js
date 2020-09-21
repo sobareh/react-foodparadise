@@ -21,7 +21,7 @@ const City = (props) => {
     getCityData(city_id);
 
     getCategoriesData();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const getCityData = (city_id) => {
     let url = `${API.zomato.baseUrl}/cities`;
