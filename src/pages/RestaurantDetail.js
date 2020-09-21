@@ -28,7 +28,7 @@ const RestaurantDetail = (props) => {
         },
       });
 
-      setRestaurant(res);
+      setRestaurant(res.data);
     } catch (err) {
       console.log(err);
     }
