@@ -1,223 +1,218 @@
-import React, { Component } from 'react'
+import React, { useState, useEffect } from "react";
 
-import axios from 'axios'
-import { API } from '../config/api'
-import CategoryList from '../components/CategoryList'
-import SearchKeyword from '../components/SearchKeyword'
-import SearchCriteria from '../components/SearchCriteria'
-import RestaurantCard from '../components/RestaurantCard'
+import axios from "axios";
+import { API } from "../config/api";
+import CategoryList from "../components/CategoryList";
+import SearchKeyword from "../components/SearchKeyword";
+import SearchCriteria from "../components/SearchCriteria";
+import RestaurantCard from "../components/RestaurantCard";
 
-class City extends Component {
-  constructor() {
-    super()
-    this.state = {
-      city: null,
-      categories: null,
-      categorySelected: null,
-      keyword: '',
-      criteria: [],
-      restaurants: []
-    }
-  }
-  
-  componentDidMount() {
+const City = (props) => {
+  const [city, setCity] = useState(null);
+  const [categories, setCategories] = useState(null);
+  const [categorySelected, setCategorySelected] = useState(null);
+  const [keyword, setKeyword] = useState("");
+  const [criteria, setCriteria] = useState([]);
+  const [restaurants, setRestaurants] = useState([]);
+
+  useEffect(() => {
     // cara mendapatkan parameter city_id dari url / route
-    let { city_id } = this.props.match.params
-    this.getCityData(city_id)
+    let { city_id } = props.match.params;
+    getCityData(city_id);
 
-    this.getCategoriesData()
-  }
+    getCategoriesData();
+  }, []);
 
-  getCityData = (city_id) => {
-    let url = `${API.zomato.baseUrl}/cities`
-    axios.get(url, {
-      headers: {
-        'user-key': API.zomato.api_key
-      },
-      params: {
-        city_ids: `${city_id}`
-      }
-    })
-      .then(({ data }) => {
-        let city = data.location_suggestions[0]
-        let newCriteria = {
-          criteriaName: 'City',
-          data: city
-        }
-        let criteria = [...this.state.criteria]
-        criteria.push(newCriteria)
-        this.setState({ city, criteria })
+  const getCityData = (city_id) => {
+    let url = `${API.zomato.baseUrl}/cities`;
+    axios
+      .get(url, {
+        headers: {
+          "user-key": API.zomato.api_key,
+        },
+        params: {
+          city_ids: `${city_id}`,
+        },
       })
-      .catch(err => console.log(err))
-  }
+      .then(({ data }) => {
+        let city = data.location_suggestions[0];
+        let newCriteria = {
+          criteriaName: "City",
+          data: city,
+        };
+        let criteria2 = [...criteria];
+        criteria.push(newCriteria);
+        setCity(city);
+        setCriteria(criteria2);
+      })
+      .catch((err) => console.log(err));
+  };
 
-  getCategoriesData = () => {
-    let url = `${API.zomato.baseUrl}/categories`
-    axios.get(url, {
-      headers: {
-        'user-key': API.zomato.api_key
-      }
-    })
+  const getCategoriesData = () => {
+    let url = `${API.zomato.baseUrl}/categories`;
+    axios
+      .get(url, {
+        headers: {
+          "user-key": API.zomato.api_key,
+        },
+      })
       .then(({ data }) => {
         // proses transform data categories
-        let categories = this.transformCategoriesData(data.categories)
-        this.setState({ categories })
+        let categories = transformCategoriesData(data.categories);
+        setCategories(categories);
       })
-      .catch(err => console.log(err))
-  }
+      .catch((err) => console.log(err));
+  };
 
+  const transformCategoriesData = (categories) => {
+    let categoriesTransformed = categories.map((category) => {
+      return category.categories;
+    });
 
-  transformCategoriesData(categories) {
-    let categoriesTransformed = categories.map(category => {
-      return category.categories
-    })
+    return categoriesTransformed;
+  };
 
-    return categoriesTransformed
-  }
-
-  categoryClickHandler = (category) => {
-    let criteria = [...this.state.criteria]
-    // ambil element array selain element dengan criteriaName 'Category' 
-    criteria = criteria.filter(cri => cri.criteriaName !== 'Category')
+  const categoryClickHandler = (category) => {
+    let criteria2 = [...criteria];
+    // ambil element array selain element dengan criteriaName 'Category'
+    criteria2 = criteria.filter((cri) => cri.criteriaName !== "Category");
     let newCriteria = {
-      criteriaName: 'Category',
-      data: category
-    }
-    criteria.push(newCriteria)
-    this.setState({ categorySelected: category, criteria })
-  }
+      criteriaName: "Category",
+      data: category,
+    };
+    criteria.push(newCriteria);
+    setCategorySelected(category, criteria2);
+  };
 
-  changeKeywordHandler = (event) => {
-    this.setState({ keyword: event.target.value });
-  }
+  const changeKeywordHandler = (event) => {
+    setKeyword(event.target.value);
+  };
 
-  addToCriteriaHandler = () => {
-    let criteria = [...this.state.criteria]
-    criteria = criteria.filter(cri => cri.criteriaName !== 'Keyword')
+  const addToCriteriaHandler = () => {
+    let criteria2 = [...criteria];
+    criteria2 = criteria2.filter((cri) => cri.criteriaName !== "Keyword");
     let newCriteria = {
-      criteriaName: 'Keyword',
+      criteriaName: "Keyword",
       data: {
-        name: this.state.keyword
-      }
-    }
-
-    criteria.push(newCriteria)
-    this.setState({ keyword: '', criteria })
-  }
-
-  removeCriteriaHandler = (index) => {
-    let criteria = [...this.state.criteria]
-    criteria.splice(index, 1)
-    this.setState({ criteria })
-  }
-
-  searchHandler = () => {
-    this.setState({restaurants: null})
-    let url = `${API.zomato.baseUrl}/search`
-    let params = {}
-
-    for (let cri of this.state.criteria) {
-
-      switch (cri.criteriaName) {
-        case 'City':
-          params.entity_id = cri.data.id
-          params.entity_type = 'city'
-          break
-        case 'Category':
-          params.category = cri.data.id
-          break
-        case 'Keyword':
-          params.q = cri.data.name
-          break
-        default: break
-      }
-    }
-
-    axios.get(url, {
-      headers: {
-        'user-key': API.zomato.api_key
+        name: keyword,
       },
-      params
-    })
-      .then(({ data }) => {
-        this.setState({ restaurants: data.restaurants })
+    };
+
+    criteria2.push(newCriteria);
+    setKeyword("");
+    setCriteria(criteria2);
+  };
+
+  const removeCriteriaHandler = (index) => {
+    let criteria2 = [...criteria];
+    criteria2.splice(index, 1);
+    setCriteria(criteria2);
+    console.log(criteria2);
+  };
+
+  const searchHandler = () => {
+    setRestaurants(null);
+    let url = `${API.zomato.baseUrl}/search`;
+    let params = {};
+
+    for (let cri of criteria) {
+      switch (cri.criteriaName) {
+        case "City":
+          params.entity_id = cri.data.id;
+          params.entity_type = "city";
+          break;
+        case "Category":
+          params.category = cri.data.id;
+          break;
+        case "Keyword":
+          params.q = cri.data.name;
+          break;
+        default:
+          break;
+      }
+    }
+
+    axios
+      .get(url, {
+        headers: {
+          "user-key": API.zomato.api_key,
+        },
+        params,
       })
-      .catch(err => console.log(err))
-  }
+      .then(({ data }) => {
+        setRestaurants(data.restaurants);
+      })
+      .catch((err) => console.log(err));
+  };
 
-
-  renderRestaurantList = () => {
-    if(this.state.restaurants == null) {
+  const renderRestaurantList = () => {
+    if (restaurants == null) {
       return (
         <div className="col">
-          <p>Loading...</p> 
+          <p>Loading...</p>
         </div>
-      )
+      );
     }
 
-    if(this.state.restaurants.length > 0) {
-      return (
-        this.state.restaurants.map(({ restaurant }) => (
-          <RestaurantCard key={restaurant.id} restaurant={restaurant} />
-        ))
-      )
+    if (restaurants.length > 0) {
+      return restaurants.map(({ restaurant }) => (
+        <RestaurantCard key={restaurant.id} restaurant={restaurant} />
+      ));
     } else {
       return (
         <div className="col">
           <p>No Data available. Please select criteria, and click Search</p>
         </div>
-      )
+      );
     }
-  }
+  };
 
-  render(){
-    return (
-      <div className="container-fluid" style={{ marginTop: 30, marginBottom: 30 }}>
-        { this.state.city && (
-          <div className="row">
-            <div className="col">
-              <h4 className="text-success">
-                Restaurant in { this.state.city.name }, { this.state.city.country_name }
-              </h4>
-            </div>
-          </div>
-        )}
+  return (
+    <div
+      className="container-fluid"
+      style={{ marginTop: 30, marginBottom: 30 }}
+    >
+      {city && (
         <div className="row">
-          <div className="col-3">
-            <h5>Categories</h5>
-            <CategoryList 
-              categories={this.state.categories}
-              categorySelected={this.state.categorySelected}
-              categoryClickHandler={(category) => this.categoryClickHandler(category)}
-            />
-          </div>
-
           <div className="col">
-            <SearchKeyword
-              keyword={this.state.keyword}
-              changeKeywordHandler={this.changeKeywordHandler}
-              onClickAddToCriteria={this.addToCriteriaHandler}
-            />
-            <SearchCriteria 
-              criteria={this.state.criteria}
-              removeCriteriaHandler={(index) => this.removeCriteriaHandler(index)}
-              onClickSearch={this.searchHandler}
-            />
-
-            <div className="row">
-              <div className="col" style={{ marginBottom: 10 }}>
-                <h4 className="text-success">Restaurant List</h4>
-              </div>
-            </div>
-            <div className="row">
-              { this.renderRestaurantList() }
-            </div>
-
+            <h4 className="text-success">
+              Restaurant in {city.name}, {city.country_name}
+            </h4>
           </div>
         </div>
-      </div>
-    )
-  }
-}
+      )}
+      <div className="row">
+        <div className="col-3">
+          <h5>Categories</h5>
+          <CategoryList
+            categories={categories}
+            categorySelected={categorySelected}
+            categoryClickHandler={(category) => categoryClickHandler(category)}
+          />
+        </div>
 
-export default City
+        <div className="col">
+          <SearchKeyword
+            keyword={keyword}
+            changeKeywordHandler={changeKeywordHandler}
+            onClickAddToCriteria={addToCriteriaHandler}
+          />
+          <SearchCriteria
+            criteria={criteria}
+            removeCriteriaHandler={(index) => removeCriteriaHandler(index)}
+            onClickSearch={searchHandler}
+          />
+
+          <div className="row">
+            <div className="col" style={{ marginBottom: 10 }}>
+              <h4 className="text-success">Restaurant List</h4>
+            </div>
+          </div>
+          <div className="row">{renderRestaurantList()}</div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default City;
